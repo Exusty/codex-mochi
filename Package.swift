@@ -6,9 +6,11 @@ let package = Package(
     platforms: [.macOS(.v13)],
     products: [
         .library(name: "CodexMochiCore", targets: ["CodexMochiCore"]),
+        .executable(name: "CodexMochi", targets: ["CodexMochiApp"]),
     ],
     targets: [
         .target(name: "CodexMochiCore"),
+        .executableTarget(name: "CodexMochiApp", dependencies: ["CodexMochiCore"]),
         .testTarget(
             name: "CodexMochiCoreTests",
             dependencies: ["CodexMochiCore"],
