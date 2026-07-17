@@ -57,4 +57,4 @@ swift build -c release
 
 ## License
 
-[MIT](LICENSE) © 2026 Junxin Gan
+[MIT](LICENSE) © 2026 Exusty
