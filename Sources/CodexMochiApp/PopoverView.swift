@@ -150,6 +150,16 @@ struct PopoverView: View {
             Spacer(minLength: 3)
 
             Button {
+                _ = NSWorkspace.shared.open(CodexMochiLinks.githubProject)
+            } label: {
+                Label("Star", systemImage: "star.fill")
+                    .font(.system(size: 10, weight: .semibold))
+            }
+            .buttonStyle(FooterActionButtonStyle(tint: MochiPalette.membershipButter))
+            .help("在 GitHub 上给 Codex Mochi 点个 Star")
+            .accessibilityLabel("在 GitHub 打开 Codex Mochi 项目")
+
+            Button {
                 Task { await store.refresh() }
             } label: {
                 Label(store.isRefreshing ? "刷新中" : "刷新", systemImage: "arrow.clockwise")
