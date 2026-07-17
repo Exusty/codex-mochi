@@ -40,15 +40,20 @@ final class StatusBarController: NSObject {
     private func configurePopover() {
         popover.behavior = .transient
         popover.animates = true
-        popover.contentSize = NSSize(width: 332, height: 430)
+        popover.contentSize = NSSize(width: 348, height: 404)
         popover.contentViewController = NSHostingController(rootView: PopoverView(store: store))
     }
 
     private func observeStore() {
-        store.$snapshot
-            .combineLatest(store.$error, store.$isRefreshing)
+        Publishers.CombineLatest4(
+            store.$snapshot,
+            store.$error,
+            store.$isRefreshing,
+            store.$pace
+        )
+            .combineLatest(store.$localTokens)
             .receive(on: RunLoop.main)
-            .sink { [weak self] _, _, _ in self?.updateStatusButton() }
+            .sink { [weak self] _ in self?.updateStatusButton() }
             .store(in: &cancellables)
     }
 
@@ -80,11 +85,14 @@ final class StatusBarController: NSObject {
 
     private func updateStatusButton() {
         guard let button = statusItem.button else { return }
-        let remaining = store.snapshot?.fiveHour?.remainingPercent
-            ?? store.snapshot?.weekly?.remainingPercent
+        let remaining = store.snapshot?.constrainedWeekly?.remainingPercent
         button.title = " " + StatusTitleFormatter.title(snapshot: store.snapshot, error: store.error)
         button.image = MochiIconRenderer.image(
             remainingPercent: remaining,
+            burnUrgency: max(
+                store.pace.mood.animationUrgency,
+                store.localTokens.speedMood.animationUrgency
+            ),
             phase: phase,
             hasError: store.error != nil && store.snapshot == nil,
             isLoading: store.isRefreshing && store.snapshot == nil
@@ -94,9 +102,9 @@ final class StatusBarController: NSObject {
 
     private func accessibilityLabel(remaining: Double?) -> String {
         if let remaining {
-            return "Codex 五小时额度剩余 \(Int(remaining.rounded())) 百分比"
+            return "Codex 周额度剩余 \(Int(remaining.rounded())) 百分比，\(store.localTokens.speedMood.phrase)"
         }
-        return store.error?.localizedDescription ?? "正在读取 Codex 剩余额度"
+        return store.error?.localizedDescription ?? "正在读取 Codex 周额度"
     }
 
     @objc private func togglePopover() {

@@ -40,15 +40,36 @@ public struct QuotaWindow: Equatable, Sendable {
 
 public struct QuotaSnapshot: Equatable, Sendable {
     public let plan: String?
-    public let fiveHour: QuotaWindow?
-    public let weekly: QuotaWindow?
+    public let primaryWeekly: QuotaWindow?
+    public let secondaryWeekly: QuotaWindow?
     public let fetchedAt: Date
+    public let resetCreditsAvailable: Int?
+    public let resetCreditsApplicable: Int?
 
-    public init(plan: String?, fiveHour: QuotaWindow?, weekly: QuotaWindow?, fetchedAt: Date) {
+    public init(
+        plan: String?,
+        primaryWeekly: QuotaWindow?,
+        secondaryWeekly: QuotaWindow?,
+        fetchedAt: Date,
+        resetCreditsAvailable: Int? = nil,
+        resetCreditsApplicable: Int? = nil
+    ) {
         self.plan = plan
-        self.fiveHour = fiveHour
-        self.weekly = weekly
+        self.primaryWeekly = primaryWeekly
+        self.secondaryWeekly = secondaryWeekly
         self.fetchedAt = fetchedAt
+        self.resetCreditsAvailable = resetCreditsAvailable
+        self.resetCreditsApplicable = resetCreditsApplicable
+    }
+
+    public var constrainedWeekly: QuotaWindow? {
+        switch (primaryWeekly, secondaryWeekly) {
+        case let (primary?, secondary?):
+            primary.remainingPercent <= secondary.remainingPercent ? primary : secondary
+        case let (primary?, nil): primary
+        case let (nil, secondary?): secondary
+        case (nil, nil): nil
+        }
     }
 }
 

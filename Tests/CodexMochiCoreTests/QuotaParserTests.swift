@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import CodexMochiCore
 
-@Test func parsesUsedPercentAsRemainingAcrossPrimaryAndSecondaryWindows() throws {
+@Test func parsesPrimaryAndSecondaryAsWeeklyWindows() throws {
     let data = Data(#"""
     {
       "plan_type": "plus",
@@ -10,26 +10,62 @@ import Testing
         "primary_window": {
           "used_percent": 36,
           "reset_at": 1752700000,
-          "limit_window_seconds": 18000
+          "limit_window_seconds": 604800
         },
         "secondary_window": {
           "used_percent": 74.5,
           "reset_at": "2026-07-20T08:00:00Z",
           "limit_window_seconds": 604800
         }
+      },
+      "rate_limit_reset_credits": {
+        "available_count": 3,
+        "applicable_available_count": 0
       }
     }
     """#.utf8)
 
     let snapshot = try QuotaParser.parse(data: data, now: Date(timeIntervalSince1970: 1_752_600_000))
-    let fiveHour = try #require(snapshot.fiveHour)
-    let weekly = try #require(snapshot.weekly)
+    let primary = try #require(snapshot.primaryWeekly)
+    let secondary = try #require(snapshot.secondaryWeekly)
 
     #expect(snapshot.plan == "Plus")
-    #expect(abs(fiveHour.remainingPercent - 64) < 0.001)
-    #expect(fiveHour.windowSeconds == 18_000)
-    #expect(abs(weekly.remainingPercent - 25.5) < 0.001)
-    #expect(weekly.resetsAt == ISO8601DateFormatter().date(from: "2026-07-20T08:00:00Z"))
+    #expect(abs(primary.remainingPercent - 64) < 0.001)
+    #expect(primary.windowSeconds == 604_800)
+    #expect(abs(secondary.remainingPercent - 25.5) < 0.001)
+    #expect(secondary.resetsAt == ISO8601DateFormatter().date(from: "2026-07-20T08:00:00Z"))
+    #expect(snapshot.constrainedWeekly?.remainingPercent == 25.5)
+    #expect(snapshot.resetCreditsAvailable == 3)
+    #expect(snapshot.resetCreditsApplicable == 0)
+}
+
+@Test func resetCreditsStayUnknownWhenMissingAndClampNegativeCounts() throws {
+    let missingData = Data(#"""
+    {
+      "rate_limit": {
+        "primary_window": { "remaining_percent": 80, "limit_window_seconds": 604800 }
+      }
+    }
+    """#.utf8)
+    let clampedData = Data(#"""
+    {
+      "rate_limit": {
+        "primary_window": { "remaining_percent": 80, "limit_window_seconds": 604800 }
+      },
+      "rateLimitResetCredits": {
+        "availableCount": -2,
+        "applicableAvailableCount": -1
+      }
+    }
+    """#.utf8)
+
+    let missing = try QuotaParser.parse(data: missingData)
+    let clamped = try QuotaParser.parse(data: clampedData)
+
+    #expect(missing.resetCreditsAvailable == nil)
+    #expect(missing.resetCreditsApplicable == nil)
+    #expect(clamped.resetCreditsAvailable == 0)
+    #expect(clamped.resetCreditsApplicable == 0)
 }
 
 @Test func parsesRatioFieldsAndFindsWindowsArray() throws {
@@ -38,8 +74,8 @@ import Testing
       "plan": "team",
       "rateLimit": {
         "windows": [
-          { "name": "5h", "remaining_ratio": 0.42, "window_seconds": 18000 },
-          { "name": "weekly", "utilization": 0.125, "window_seconds": 604800 }
+          { "name": "primary", "remaining_ratio": 0.42, "window_seconds": 604800 },
+          { "name": "secondary", "utilization": 0.125, "window_seconds": 604800 }
         ]
       }
     }
@@ -48,15 +84,15 @@ import Testing
     let snapshot = try QuotaParser.parse(data: data)
 
     #expect(snapshot.plan == "Team")
-    #expect(abs((snapshot.fiveHour?.remainingPercent ?? -1) - 42) < 0.001)
-    #expect(abs((snapshot.weekly?.remainingPercent ?? -1) - 87.5) < 0.001)
+    #expect(abs((snapshot.primaryWeekly?.remainingPercent ?? -1) - 42) < 0.001)
+    #expect(abs((snapshot.secondaryWeekly?.remainingPercent ?? -1) - 87.5) < 0.001)
 }
 
 @Test func clampsOutOfRangeValues() throws {
     let data = Data(#"""
     {
       "rate_limit": {
-        "primary_window": { "remaining_percent": 140, "limit_window_seconds": 18000 },
+        "primary_window": { "remaining_percent": 140, "limit_window_seconds": 604800 },
         "secondary_window": { "used_percent": 250, "limit_window_seconds": 604800 }
       }
     }
@@ -64,8 +100,8 @@ import Testing
 
     let snapshot = try QuotaParser.parse(data: data)
 
-    #expect(snapshot.fiveHour?.remainingPercent == 100)
-    #expect(snapshot.weekly?.remainingPercent == 0)
+    #expect(snapshot.primaryWeekly?.remainingPercent == 100)
+    #expect(snapshot.secondaryWeekly?.remainingPercent == 0)
 }
 
 @Test func throwsWhenNoQuotaWindowsCanBeParsed() {

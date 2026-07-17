@@ -3,7 +3,7 @@ import Testing
 @testable import CodexMochiCore
 
 @Test func quotaClientSendsCodexHeadersAndParsesUsage() async throws {
-    let body = Data(#"{"plan_type":"plus","rate_limit":{"primary_window":{"used_percent":22,"limit_window_seconds":18000}}}"#.utf8)
+    let body = Data(#"{"plan_type":"plus","rate_limit":{"primary_window":{"used_percent":22,"limit_window_seconds":604800}}}"#.utf8)
     let transport = RecordingTransport(result: .success((body, response(status: 200))))
     let client = QuotaClient(
         transport: transport,
@@ -13,7 +13,7 @@ import Testing
     let snapshot = try await client.fetch()
     let request = try #require(await transport.lastRequest())
 
-    #expect(snapshot.fiveHour?.remainingPercent == 78)
+    #expect(snapshot.primaryWeekly?.remainingPercent == 78)
     #expect(request.url?.absoluteString == "https://chatgpt.com/backend-api/wham/usage")
     #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer secret-token")
     #expect(request.value(forHTTPHeaderField: "ChatGPT-Account-Id") == "acct_42")
@@ -58,12 +58,16 @@ func quotaClientMapsHTTPFailures(status: Int, expected: QuotaError) async {
 @Test func quotaStoreKeepsLastSnapshotAndMarksItStaleAfterFailure() async {
     let snapshot = QuotaSnapshot(
         plan: "Plus",
-        fiveHour: QuotaWindow(remainingPercent: 55, resetsAt: nil, windowSeconds: 18_000),
-        weekly: nil,
+        primaryWeekly: QuotaWindow(remainingPercent: 55, resetsAt: nil, windowSeconds: 604_800),
+        secondaryWeekly: nil,
         fetchedAt: Date()
     )
     let fetcher = SequenceFetcher(results: [.success(snapshot), .failure(.transport)])
-    let store = QuotaStore(fetcher: fetcher)
+    let store = QuotaStore(
+        fetcher: fetcher,
+        historyURL: nil,
+        tokenSnapshotProvider: { .empty }
+    )
 
     await store.refresh()
     #expect(store.snapshot == snapshot)
@@ -73,6 +77,39 @@ func quotaClientMapsHTTPFailures(status: Int, expected: QuotaError) async {
     #expect(store.snapshot == snapshot)
     #expect(store.isStale)
     #expect(store.error == .transport)
+}
+
+@MainActor
+@Test func quotaStoreRefreshesLocalTokenSnapshot() async {
+    let quota = QuotaSnapshot(
+        plan: "Pro",
+        primaryWeekly: QuotaWindow(remainingPercent: 98, resetsAt: nil, windowSeconds: 604_800),
+        secondaryWeekly: nil,
+        fetchedAt: Date()
+    )
+    let localTokens = LocalTokenSnapshot(
+        today: TokenCounts(
+            input: 1_200_000,
+            cachedInput: 900_000,
+            output: 80_000,
+            reasoningOutput: 20_000,
+            total: 1_280_000
+        ),
+        recentTokensPerHour: 2_400_000,
+        speedMood: .gobbling,
+        sampleCount: 12,
+        lastUpdatedAt: Date()
+    )
+    let store = QuotaStore(
+        fetcher: SequenceFetcher(results: [.success(quota)]),
+        historyURL: nil,
+        tokenSnapshotProvider: { localTokens }
+    )
+
+    await store.refresh()
+
+    #expect(store.localTokens == localTokens)
+    #expect(store.snapshot == quota)
 }
 
 private actor RecordingTransport: HTTPTransport {

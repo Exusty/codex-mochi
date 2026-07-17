@@ -3,6 +3,7 @@ import AppKit
 enum MochiIconRenderer {
     static func image(
         remainingPercent: Double?,
+        burnUrgency: Int,
         phase: Int,
         hasError: Bool,
         isLoading: Bool
@@ -12,13 +13,14 @@ enum MochiIconRenderer {
             let context = NSGraphicsContext.current?.cgContext
             context?.setShouldAntialias(true)
 
-            let urgency: Int
-            if hasError { urgency = 0 }
-            else if let remainingPercent, remainingPercent < 20 { urgency = 3 }
-            else if let remainingPercent, remainingPercent < 50 { urgency = 2 }
-            else { urgency = 1 }
+            let quotaUrgency: Int
+            if hasError { quotaUrgency = 0 }
+            else if let remainingPercent, remainingPercent < 20 { quotaUrgency = 3 }
+            else if let remainingPercent, remainingPercent < 50 { quotaUrgency = 2 }
+            else { quotaUrgency = 1 }
+            let urgency = min(4, max(quotaUrgency, burnUrgency))
 
-            let step = urgency == 3 ? phase : (urgency == 2 ? phase / 2 : phase / 4)
+            let step = urgency >= 3 ? phase : (urgency == 2 ? phase / 2 : phase / 4)
             let bob = step.isMultiple(of: 2) ? CGFloat(0) : CGFloat(1)
             let blink = !hasError && !isLoading && phase % 17 == 0
             let originY = 2 + bob

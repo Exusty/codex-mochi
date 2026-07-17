@@ -9,29 +9,42 @@ public enum QuotaParser {
         }
 
         let rateLimit = dictionary(root, keys: ["rate_limit", "rateLimit"]) ?? root
-        let fiveHour = findWindow(
+        let primaryWeekly = findWindow(
             in: rateLimit,
-            directKeys: ["primary_window", "primaryWindow", "five_hour", "fiveHour", "five_hour_window"],
-            names: ["5h", "five_hour", "primary"],
-            expectedSeconds: 18_000
+            directKeys: ["primary_window", "primaryWindow", "weekly_primary", "weeklyPrimary"],
+            names: ["primary", "main", "weekly_primary"],
+            expectedSeconds: 604_800
         )
-        let weekly = findWindow(
+        let secondaryWeekly = findWindow(
             in: rateLimit,
-            directKeys: ["secondary_window", "secondaryWindow", "weekly", "weekly_window", "weeklyWindow"],
-            names: ["weekly", "week", "secondary", "7d"],
+            directKeys: ["secondary_window", "secondaryWindow", "weekly_secondary", "weeklySecondary"],
+            names: ["secondary", "backup", "weekly_secondary"],
             expectedSeconds: 604_800
         )
 
-        guard fiveHour != nil || weekly != nil else {
+        guard primaryWeekly != nil || secondaryWeekly != nil else {
             throw QuotaError.changedResponse
         }
+
+        let resetCredits = dictionary(
+            root,
+            keys: ["rate_limit_reset_credits", "rateLimitResetCredits"]
+        )
+        let resetCreditsAvailable = resetCredits
+            .flatMap { integer($0, keys: ["available_count", "availableCount"]) }
+            .map { max(0, $0) }
+        let resetCreditsApplicable = resetCredits
+            .flatMap { integer($0, keys: ["applicable_available_count", "applicableAvailableCount"]) }
+            .map { max(0, $0) }
 
         let rawPlan = string(root, keys: ["plan_type", "planType", "plan"])
         return QuotaSnapshot(
             plan: rawPlan.map(displayPlan),
-            fiveHour: fiveHour,
-            weekly: weekly,
-            fetchedAt: now
+            primaryWeekly: primaryWeekly,
+            secondaryWeekly: secondaryWeekly,
+            fetchedAt: now,
+            resetCreditsAvailable: resetCreditsAvailable,
+            resetCreditsApplicable: resetCreditsApplicable
         )
     }
 
@@ -54,7 +67,7 @@ public enum QuotaParser {
                 let label = string(item, keys: ["name", "type", "id", "window", "label"])?.lowercased()
                 let nameMatches = label.map { value in names.contains { value.contains($0) } } ?? false
                 let durationMatches = abs(parsed.windowSeconds - expectedSeconds) <= 60
-                if nameMatches || durationMatches { return parsed }
+                if label != nil ? nameMatches : durationMatches { return parsed }
             }
         }
         return nil
