@@ -1,8 +1,25 @@
 # Codex Mochi
 
+[![CI](https://github.com/Exusty/codex-mochi/actions/workflows/ci.yml/badge.svg)](https://github.com/Exusty/codex-mochi/actions/workflows/ci.yml)
+[![macOS 13+](https://img.shields.io/badge/macOS-13%2B-111111?logo=apple)](https://github.com/Exusty/codex-mochi)
+[![MIT License](https://img.shields.io/badge/license-MIT-6fbf9f.svg)](LICENSE)
+
 一只住在 macOS 菜单栏里的 Codex 额度糯米猫。
 
 它默认显示五小时窗口的**剩余额度**，点击可查看五小时和每周额度、重置时间与刷新状态。额度越紧张，猫的动作越快；读取失败时不会编造数字，而会保留并标记上次的可用结果。
+
+> A tiny animated macOS menu bar companion for Codex quota. It shows honest five-hour and weekly remaining usage, reset times, and clear stale/error states using your existing local Codex login.
+
+灵感来自 [RunCat](https://apps.apple.com/app/runcat/id1429033973) 的环境式状态反馈，以及 [Quota Float](https://github.com/change-42-yhmm/quota-float) 的本地优先额度读取边界。本项目使用独立实现与原创的糯米猫界面。
+
+## 功能
+
+- 菜单栏实时剩余百分比
+- 会眨眼、跳动并随额度紧张而加速的糯米猫
+- 五小时和每周额度卡片及重置倒计时
+- 60 秒自动刷新、手动刷新与诚实的异常状态
+- 原生 Swift / AppKit / SwiftUI，无第三方运行时依赖
+- 本地优先、无遥测、不持久化 Codex 凭据
 
 ## 直接使用
 
@@ -37,3 +54,7 @@ swift build -c release
 ## 第一版边界
 
 目前只支持 Codex，不包含多账户、历史曲线、通知、自启动和主题商店。视觉与功能都刻意保持小而明确，后续可在实际使用后继续调整。
+
+## License
+
+[MIT](LICENSE) © 2026 Junxin Gan

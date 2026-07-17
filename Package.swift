@@ -1,5 +1,11 @@
 // swift-tools-version: 6.0
+import Foundation
 import PackageDescription
+
+let commandLineToolsFrameworks = "/Library/Developer/CommandLineTools/Library/Developer/Frameworks"
+let usesCommandLineToolsTesting = FileManager.default.fileExists(
+    atPath: "\(commandLineToolsFrameworks)/Testing.framework"
+)
 
 let package = Package(
     name: "CodexMochi",
@@ -14,12 +20,12 @@ let package = Package(
         .testTarget(
             name: "CodexMochiCoreTests",
             dependencies: ["CodexMochiCore"],
-            swiftSettings: [
-                .unsafeFlags(["-F", "/Library/Developer/CommandLineTools/Library/Developer/Frameworks"]),
-            ],
-            linkerSettings: [
-                .unsafeFlags(["-F", "/Library/Developer/CommandLineTools/Library/Developer/Frameworks", "-framework", "Testing"]),
-            ]
+            swiftSettings: usesCommandLineToolsTesting
+                ? [.unsafeFlags(["-F", commandLineToolsFrameworks])]
+                : [],
+            linkerSettings: usesCommandLineToolsTesting
+                ? [.unsafeFlags(["-F", commandLineToolsFrameworks, "-framework", "Testing"])]
+                : []
         ),
     ]
 )
