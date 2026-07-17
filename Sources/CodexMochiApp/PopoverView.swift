@@ -37,7 +37,8 @@ struct PopoverView: View {
                 QuotaCard(
                     eyebrow: "本周额度",
                     window: store.snapshot?.primaryWeekly,
-                    fallback: stateFallback
+                    fallback: stateFallback,
+                    theme: theme
                 )
                 ResetCreditCard(
                     available: store.snapshot?.resetCreditsAvailable,
@@ -200,10 +201,7 @@ private struct QuotaCard: View {
     let eyebrow: String
     let window: QuotaWindow?
     let fallback: String
-
-    private var level: QuotaLevel {
-        QuotaLevel(remainingPercent: window?.remainingPercent ?? 100)
-    }
+    let theme: MochiThemeID
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -228,7 +226,7 @@ private struct QuotaCard: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(MochiPalette.track)
                     Capsule()
-                        .fill(MochiPalette.color(for: level))
+                        .fill(MochiPalette.accent(for: theme))
                         .frame(width: geometry.size.width * CGFloat((window?.remainingPercent ?? 0) / 100))
                 }
             }
@@ -918,7 +916,6 @@ private enum MochiPalette {
     static let mint = Color(red: 0.45, green: 0.84, blue: 0.69)
     static let yuzu = Color(red: 0.94, green: 0.69, blue: 0.22)
     static let coral = Color(red: 0.96, green: 0.37, blue: 0.34)
-    static let ash = Color(red: 0.56, green: 0.58, blue: 0.61)
     static let kibble = Color(red: 0.60, green: 0.38, blue: 0.22)
     static let membershipMint = Color(red: 0.45, green: 0.84, blue: 0.69)
     static let membershipSky = Color(red: 0.46, green: 0.74, blue: 0.92)
@@ -926,16 +923,7 @@ private enum MochiPalette {
     static let membershipFog = Color(red: 0.66, green: 0.71, blue: 0.77)
 
     static func accent(for theme: MochiThemeID) -> Color {
-        switch theme {
-        case .mint: Color(red: 0.45, green: 0.84, blue: 0.69)
-        case .sky: Color(red: 0.46, green: 0.74, blue: 0.92)
-        case .lavender: Color(red: 0.72, green: 0.65, blue: 0.91)
-        case .sakura: Color(red: 0.92, green: 0.71, blue: 0.78)
-        case .peach: Color(red: 0.94, green: 0.70, blue: 0.56)
-        case .butter: Color(red: 0.89, green: 0.79, blue: 0.44)
-        case .oatmeal: Color(red: 0.79, green: 0.72, blue: 0.62)
-        case .fog: Color(red: 0.66, green: 0.71, blue: 0.77)
-        }
+        Color(red: theme.accent.red, green: theme.accent.green, blue: theme.accent.blue)
     }
 
     static func softCard(for theme: MochiThemeID) -> Color {
@@ -946,12 +934,4 @@ private enum MochiPalette {
         accent(for: theme).opacity(0.34)
     }
 
-    static func color(for level: QuotaLevel) -> Color {
-        switch level {
-        case .healthy: mint
-        case .caution: yuzu
-        case .critical: coral
-        case .empty: ash
-        }
-    }
 }

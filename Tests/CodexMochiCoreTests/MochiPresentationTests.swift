@@ -9,6 +9,15 @@ import Testing
     #expect(MochiThemeID(storedValue: "future-theme") == .mint)
 }
 
+@Test func mochiThemesExposeDistinctAccentColorsForThemeDrivenCards() {
+    let accents = MochiThemeID.allCases.map(\.accent)
+
+    #expect(Set(accents).count == MochiThemeID.allCases.count)
+    #expect(MochiThemeID.mint.accent == MochiThemeAccent(red: 0.45, green: 0.84, blue: 0.69))
+    #expect(MochiThemeID.sky.accent == MochiThemeAccent(red: 0.46, green: 0.74, blue: 0.92))
+    #expect(MochiThemeID.fog.accent == MochiThemeAccent(red: 0.66, green: 0.71, blue: 0.77))
+}
+
 @Test func catReactionsCycleWithoutRepeatingTheCurrentFace() {
     #expect(CatReaction.hearts.next == .stars)
     #expect(CatReaction.stars.next == .blush)

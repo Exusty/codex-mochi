@@ -1,3 +1,15 @@
+public struct MochiThemeAccent: Hashable, Sendable {
+    public let red: Double
+    public let green: Double
+    public let blue: Double
+
+    public init(red: Double, green: Double, blue: Double) {
+        self.red = red
+        self.green = green
+        self.blue = blue
+    }
+}
+
 public enum MochiThemeID: String, CaseIterable, Equatable, Sendable {
     case mint
     case sky
@@ -22,6 +34,19 @@ public enum MochiThemeID: String, CaseIterable, Equatable, Sendable {
         case .butter: "奶油"
         case .oatmeal: "燕麦"
         case .fog: "雾蓝"
+        }
+    }
+
+    public var accent: MochiThemeAccent {
+        switch self {
+        case .mint: MochiThemeAccent(red: 0.45, green: 0.84, blue: 0.69)
+        case .sky: MochiThemeAccent(red: 0.46, green: 0.74, blue: 0.92)
+        case .lavender: MochiThemeAccent(red: 0.72, green: 0.65, blue: 0.91)
+        case .sakura: MochiThemeAccent(red: 0.92, green: 0.71, blue: 0.78)
+        case .peach: MochiThemeAccent(red: 0.94, green: 0.70, blue: 0.56)
+        case .butter: MochiThemeAccent(red: 0.89, green: 0.79, blue: 0.44)
+        case .oatmeal: MochiThemeAccent(red: 0.79, green: 0.72, blue: 0.62)
+        case .fog: MochiThemeAccent(red: 0.66, green: 0.71, blue: 0.77)
         }
     }
 }
